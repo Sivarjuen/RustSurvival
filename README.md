@@ -1,5 +1,7 @@
 # Rust Survival
 
+`F12` to toggle FPS counter
+
 ## Docs
 
 - [Docs](https://docs.rs/bevy/latest/bevy/)
@@ -18,3 +20,16 @@
 ## General Resources
 
 - [Book of Shaders](https://thebookofshaders.com/)
+
+## Help
+
+If you're getting `Blocking waiting for file lock on build directory` run:
+
+```
+rm -rf ~/.cargo/registry/index/\* ~/.cargo/.package-cache
+```
+
+## Community Plugins
+
+- [bevy-editor-pls](https://github.com/jakobhellermann/bevy_editor_pls)
+- [bevy-inspector-egui](https://github.com/jakobhellermann/bevy-inspector-egui)
