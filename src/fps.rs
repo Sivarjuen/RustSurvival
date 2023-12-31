@@ -1,6 +1,7 @@
+use crate::prelude::*;
+
 use bevy::diagnostic::DiagnosticsStore;
 use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
-use bevy::prelude::*;
 
 pub struct FpsPlugin;
 
