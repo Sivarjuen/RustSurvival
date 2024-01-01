@@ -1,12 +1,14 @@
 mod animation;
 mod assets;
 mod fps;
+mod physics;
 mod player;
 
 mod prelude {
     pub use crate::animation::*;
     pub use crate::assets::*;
     pub use crate::fps::*;
+    pub use crate::physics::*;
     pub use crate::player::*;
     pub use bevy::prelude::*;
 }
@@ -32,6 +34,7 @@ fn main() {
             EditorPlugin::default(),
             // WorldInspectorPlugin::new()
             FpsPlugin,
+            PhysicsPlugin,
             SpriteAnimationPlugin,
             AssetsPlugin,
             PlayerPlugin,

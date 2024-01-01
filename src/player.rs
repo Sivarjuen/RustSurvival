@@ -1,6 +1,7 @@
-use crate::prelude::*;
+use std::time::Duration;
 
-use bevy::sprite::Anchor;
+use crate::prelude::*;
+use bevy_rapier2d::prelude::*;
 
 const PLAYER_COLOUR: Color = Color::PURPLE;
 const PLAYER_SPEED: f32 = 300.0;
@@ -10,6 +11,13 @@ pub struct PlayerPlugin;
 
 #[derive(Component)]
 pub struct Player;
+
+#[derive(Resource)]
+pub struct PlayerAnimations {
+    pub idle_animation: Handle<AnimationClip>,
+    pub walk_animation: Handle<AnimationClip>,
+
+}
 
 #[derive(Component, Default)]
 pub struct HeldItem {
@@ -28,7 +36,7 @@ pub fn spawn_player(
     mut animations: ResMut<Assets<AnimationClip>>,
     handles: Res<SpriteAssets>,
 ) {
-    let mut animation_player = AnimationPlayer::default();
+    let animation_player = AnimationPlayer::default();
     let body_sprite_name = Name::new("BodySprite");
     let eye_sprite_name = Name::new("EyeSprite");
     let anchor_name = Name::new("PlayerAnchor");
@@ -61,6 +69,17 @@ pub fn spawn_player(
             ]),
         },
     );
+    idle_animation.add_curve_to_path(
+        EntityPath {
+            parts: vec![anchor_name.clone()],
+        },
+        VariableCurve {
+            keyframe_timestamps: vec![0.0],
+            keyframes: Keyframes::Translation(vec![
+                Vec3::new(0., 0., 0.),
+            ]),
+        },
+    );
 
     let mut walk_animation = AnimationClip::default();
     walk_animation.add_curve_to_path(
@@ -76,15 +95,19 @@ pub fn spawn_player(
             ]),
         },
     );
+
+    // 0, 8, 0, -8
     walk_animation.add_curve_to_path(
         EntityPath {
             parts: vec![anchor_name.clone()],
         },
         VariableCurve {
-            keyframe_timestamps: vec![0.0, 0.2, 0.4],
+            keyframe_timestamps: vec![0.0, 0.1, 0.2, 0.3, 0.4],
             keyframes: Keyframes::Translation(vec![
                 Vec3::new(0., 0., 0.),
-                Vec3::new(0., -15., 0.),
+                Vec3::new(0., 8., 0.),
+                Vec3::new(0., 0., 0.),
+                Vec3::new(0., -8., 0.),
                 Vec3::new(0., 0., 0.),
             ]),
         },
@@ -119,15 +142,29 @@ pub fn spawn_player(
         },
     );
 
-    animation_player
-        .play(animations.add(walk_animation))
-        .repeat();
+    commands.insert_resource(PlayerAnimations { 
+        idle_animation: animations.add(idle_animation),
+        walk_animation: animations.add(walk_animation)
+    });
+
 
     let root = commands
-        .spawn((SpatialBundle::default(), Name::new("Player"), Player))
+        .spawn((
+            SpatialBundle::default(),
+            Name::new("Player"),
+            RigidBody::Dynamic,
+            Collider::ball((PLAYER_SIZE * 0.7)/ 2.),
+            GravityScale(0.),
+            Velocity::zero(),
+            LockedAxes::ROTATION_LOCKED,
+            Player))
         .id();
     let body_anchor = commands
-        .spawn((SpatialBundle::default(), anchor_name, animation_player))
+        .spawn((
+            SpatialBundle::default(), 
+            anchor_name, 
+            animation_player,
+        ))
         .id();
     let eye_anchor = commands
         .spawn((SpatialBundle::default(), eye_anchor_name))
@@ -138,11 +175,9 @@ pub fn spawn_player(
                 sprite: Sprite {
                     color: PLAYER_COLOUR,
                     custom_size: Some(Vec2::splat(PLAYER_SIZE)),
-                    anchor: Anchor::BottomCenter,
                     ..default()
                 },
                 texture: handles.player_body.clone(),
-                transform: Transform::from_translation(Vec3::new(0., 0., 1.)),
                 ..default()
             },
             body_sprite_name,
@@ -155,7 +190,6 @@ pub fn spawn_player(
                     color: Color::rgba(0., 0., 0., 0.8),
                     index: 0,
                     custom_size: Some(Vec2::splat(PLAYER_SIZE)),
-                    anchor: Anchor::BottomCenter,
                     ..default()
                 },
                 texture_atlas: handles.player_eyes.clone(),
@@ -192,29 +226,48 @@ pub fn spawn_player(
 
 pub fn player_movement(
     keyboard_input: Res<Input<KeyCode>>,
-    mut player_query: Query<&mut Transform, With<Player>>,
-    time: Res<Time>,
+    mut player_query: Query<&mut Velocity, With<Player>>,
+    animations: Res<PlayerAnimations>,
+    mut animation_query: Query<(&mut AnimationPlayer, &mut Transform)>,
 ) {
-    if let Ok(mut transform) = player_query.get_single_mut() {
-        let mut direction = Vec3::ZERO;
+    if let Ok(mut velocity) = player_query.get_single_mut() {
+        let mut direction = Vec2::ZERO;
 
         if keyboard_input.pressed(KeyCode::Left) || keyboard_input.pressed(KeyCode::A) {
-            direction += Vec3::new(-1.0, 0.0, 0.0);
+            direction += Vec2::new(-1.0, 0.0);
         }
         if keyboard_input.pressed(KeyCode::Right) || keyboard_input.pressed(KeyCode::D) {
-            direction += Vec3::new(1.0, 0.0, 0.0);
+            direction += Vec2::new(1.0, 0.0);
         }
         if keyboard_input.pressed(KeyCode::Up) || keyboard_input.pressed(KeyCode::W) {
-            direction += Vec3::new(0.0, 1.0, 0.0);
+            direction += Vec2::new(0.0, 1.0);
         }
         if keyboard_input.pressed(KeyCode::Down) || keyboard_input.pressed(KeyCode::S) {
-            direction += Vec3::new(0.0, -1.0, 0.0);
+            direction += Vec2::new(0.0, -1.0);
         }
 
         if direction.length() > 0.0 {
             direction = direction.normalize();
         }
 
-        transform.translation += direction * PLAYER_SPEED * time.delta_seconds();
+        // transform.translation += direction * PLAYER_SPEED * time.delta_seconds();
+        velocity.linvel = direction * PLAYER_SPEED;
+
+        if let Ok((mut animation_player, mut transform)) = animation_query.get_single_mut() {
+            if direction.length() > 0.0 {
+                animation_player
+                    .play_with_transition(
+                        animations.walk_animation.clone_weak(),
+                        Duration::from_millis(250)
+                    ).repeat();
+            } else {
+                animation_player
+                    .play_with_transition(
+                        animations.idle_animation.clone_weak(),
+                        Duration::from_millis(250)
+                    ).repeat();
+                // transform.translation.y = 0.;
+            }
+        }
     }
 }

@@ -1,5 +1,3 @@
-// Courtesy of https://github.com/TanTanDev/flappy_bevy/
-
 use crate::prelude::*;
 
 use std::time::Duration;
