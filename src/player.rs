@@ -17,18 +17,16 @@ pub struct PlayerEyes;
 pub struct PlayerAnimations {
     pub idle_animation: Handle<AnimationClip>,
     pub walk_animation: Handle<AnimationClip>,
-
 }
 
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, spawn_player)
-            .add_systems(Update, (
-                player_movement,
-                target_nearest_mob,
-                lookat_nearest_target));
+        app.add_systems(Startup, spawn_player).add_systems(
+            Update,
+            (player_movement, target_nearest_mob, lookat_nearest_target),
+        );
     }
 }
 
@@ -76,9 +74,7 @@ pub fn spawn_player(
         },
         VariableCurve {
             keyframe_timestamps: vec![0.0],
-            keyframes: Keyframes::Translation(vec![
-                Vec3::new(0., 0., 0.),
-            ]),
+            keyframes: Keyframes::Translation(vec![Vec3::new(0., 0., 0.)]),
         },
     );
 
@@ -143,30 +139,26 @@ pub fn spawn_player(
         },
     );
 
-    commands.insert_resource(PlayerAnimations { 
+    commands.insert_resource(PlayerAnimations {
         idle_animation: animations.add(idle_animation),
-        walk_animation: animations.add(walk_animation)
+        walk_animation: animations.add(walk_animation),
     });
-
 
     let root = commands
         .spawn((
             SpatialBundle::default(),
             Name::new("Player"),
             RigidBody::Dynamic,
-            Collider::ball((PLAYER_SIZE * 0.7)/ 2.),
+            Collider::ball((PLAYER_SIZE * 0.7) / 2.),
             ColliderMassProperties::Density(0.0),
             GravityScale(0.),
             Velocity::zero(),
             LockedAxes::ROTATION_LOCKED,
-            Player))
+            Player,
+        ))
         .id();
     let body_anchor = commands
-        .spawn((
-            SpatialBundle::default(), 
-            anchor_name, 
-            animation_player,
-        ))
+        .spawn((SpatialBundle::default(), anchor_name, animation_player))
         .id();
     let eye_anchor = commands
         .spawn((SpatialBundle::default(), PlayerEyes, eye_anchor_name))
@@ -259,14 +251,16 @@ pub fn player_movement(
                 animation_player
                     .play_with_transition(
                         animations.walk_animation.clone_weak(),
-                        Duration::from_millis(250)
-                    ).repeat();
+                        Duration::from_millis(250),
+                    )
+                    .repeat();
             } else {
                 animation_player
                     .play_with_transition(
                         animations.idle_animation.clone_weak(),
-                        Duration::from_millis(250)
-                    ).repeat();
+                        Duration::from_millis(250),
+                    )
+                    .repeat();
             }
         }
     }
@@ -276,14 +270,14 @@ pub fn lookat_nearest_target(
     mut gizmos: Gizmos,
     target: Query<&Transform, (With<NearestMob>, Without<Player>, Without<PlayerEyes>)>,
     player: Query<&Transform, With<Player>>,
-    mut player_eyes: Query<&mut Transform, (With<PlayerEyes>, Without<Player>)>
+    mut player_eyes: Query<&mut Transform, (With<PlayerEyes>, Without<Player>)>,
 ) {
     if let Ok(player_transform) = player.get_single() {
         if let Ok(mut eyes) = player_eyes.get_single_mut() {
             if let Ok(target_transform) = target.get_single() {
                 let mut direction = Vec2::new(
                     target_transform.translation.x - player_transform.translation.x,
-                    target_transform.translation.y - player_transform.translation.y
+                    target_transform.translation.y - player_transform.translation.y,
                 );
 
                 if direction.length() > 0.0 {
@@ -292,7 +286,11 @@ pub fn lookat_nearest_target(
 
                 // TODO: Move eyes to look at target
 
-                gizmos.line_2d(player_transform.translation.xy(), target_transform.translation.xy(), Color::RED);
+                gizmos.line_2d(
+                    player_transform.translation.xy(),
+                    target_transform.translation.xy(),
+                    Color::RED,
+                );
             }
         }
     }

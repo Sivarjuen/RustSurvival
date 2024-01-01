@@ -39,7 +39,10 @@ impl Plugin for MobPlugin {
 pub fn setup(mut commands: Commands) {
     commands.insert_resource(MobCount(0));
     commands.insert_resource(MobTimer(Timer::from_seconds(0.3, TimerMode::Repeating)));
-    commands.insert_resource(TargettingTimer(Timer::from_seconds(0.5, TimerMode::Repeating)));
+    commands.insert_resource(TargettingTimer(Timer::from_seconds(
+        0.5,
+        TimerMode::Repeating,
+    )));
 }
 
 pub fn spawn_mobs(
@@ -47,7 +50,7 @@ pub fn spawn_mobs(
     time: Res<Time>,
     mut timer: ResMut<MobTimer>,
     mut count: ResMut<MobCount>,
-    player_query: Query<&Transform, With<Player>>
+    player_query: Query<&Transform, With<Player>>,
 ) {
     timer.0.tick(time.delta());
     if timer.0.just_finished() && count.0 < 3 {
@@ -56,34 +59,35 @@ pub fn spawn_mobs(
             let pos = Vec3::new(
                 (angle.cos() * SPAWN_RADIUS) + player.translation.x,
                 (angle.sin() * SPAWN_RADIUS) + player.translation.y,
-                0.0);
+                0.0,
+            );
 
             let root = commands
                 .spawn((
                     SpatialBundle::from_transform(Transform::from_translation(pos)),
                     Name::new("Mob"),
                     RigidBody::Dynamic,
-                    Collider::ball((MOB_SIZE * 0.7)/ 2.),
+                    Collider::ball((MOB_SIZE * 0.7) / 2.),
                     GravityScale(0.),
                     Velocity::zero(),
                     LockedAxes::ROTATION_LOCKED,
-                    Mob))
+                    Mob,
+                ))
                 .id();
             count.0 += 1;
         }
     }
-
 }
 
 pub fn mob_movement(
     player_query: Query<&Transform, With<Player>>,
-    mut mob_query: Query<(&mut Velocity, &Transform), With<Mob>>
+    mut mob_query: Query<(&mut Velocity, &Transform), With<Mob>>,
 ) {
     if let Ok(player_transform) = player_query.get_single() {
         for (mut velocity, transform) in &mut mob_query {
             let mut direction = Vec2::new(
                 player_transform.translation.x - transform.translation.x,
-                player_transform.translation.y - transform.translation.y
+                player_transform.translation.y - transform.translation.y,
             );
 
             if direction.length() > 0.0 {
@@ -100,17 +104,19 @@ pub fn target_nearest_mob(
     time: Res<Time>,
     mut timer: ResMut<MobTimer>,
     player_query: Query<&Transform, With<Player>>,
-    mut mob_query: Query<(Entity, &Transform), With<Mob>>
+    mut mob_query: Query<(Entity, &Transform), With<Mob>>,
 ) {
     timer.0.tick(time.delta());
-        if timer.0.just_finished() {
+    if timer.0.just_finished() {
         if let Ok(player_transform) = player_query.get_single() {
             let mut closest_distance = f32::MAX;
             let mut closest_entity: Option<Entity> = None;
 
             for (entity, transform) in mob_query.iter() {
                 commands.entity(entity).remove::<NearestMob>();
-                let distance = player_transform.translation.distance_squared(transform.translation);
+                let distance = player_transform
+                    .translation
+                    .distance_squared(transform.translation);
                 if distance < closest_distance {
                     closest_distance = distance;
                     closest_entity = Some(entity);

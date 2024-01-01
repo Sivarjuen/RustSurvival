@@ -44,7 +44,6 @@ fn main() {
             AssetsPlugin,
             PlayerPlugin,
             MobPlugin,
-            
         ))
         .add_systems(Startup, setup)
         .add_systems(Update, follow_player)
@@ -58,7 +57,7 @@ fn setup(mut commands: Commands) {
 
 fn follow_player(
     mut camera_query: Query<&mut Transform, (With<Camera>, Without<Player>)>,
-    player_query: Query<&Transform, With<Player>>
+    player_query: Query<&Transform, With<Player>>,
 ) {
     if let Ok(player) = player_query.get_single() {
         for mut transform in camera_query.iter_mut() {
