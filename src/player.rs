@@ -1,13 +1,11 @@
-use std::time::Duration;
-
 use crate::prelude::*;
 use bevy_rapier2d::prelude::*;
 
-const PLAYER_COLOUR: Color = Color::PURPLE;
-const PLAYER_SPEED: f32 = 300.0;
-const PLAYER_SIZE: f32 = 64.0;
+use std::time::Duration;
 
-pub struct PlayerPlugin;
+const PLAYER_COLOUR: Color = Color::PURPLE;
+const PLAYER_SPEED: f32 = 500.0;
+const PLAYER_SIZE: f32 = 64.0;
 
 #[derive(Component)]
 pub struct Player;
@@ -19,10 +17,7 @@ pub struct PlayerAnimations {
 
 }
 
-#[derive(Component, Default)]
-pub struct HeldItem {
-    pub item: Option<Entity>,
-}
+pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
@@ -154,6 +149,7 @@ pub fn spawn_player(
             Name::new("Player"),
             RigidBody::Dynamic,
             Collider::ball((PLAYER_SIZE * 0.7)/ 2.),
+            ColliderMassProperties::Density(0.0),
             GravityScale(0.),
             Velocity::zero(),
             LockedAxes::ROTATION_LOCKED,
@@ -228,7 +224,7 @@ pub fn player_movement(
     keyboard_input: Res<Input<KeyCode>>,
     mut player_query: Query<&mut Velocity, With<Player>>,
     animations: Res<PlayerAnimations>,
-    mut animation_query: Query<(&mut AnimationPlayer, &mut Transform)>,
+    mut animation_query: Query<&mut AnimationPlayer>,
 ) {
     if let Ok(mut velocity) = player_query.get_single_mut() {
         let mut direction = Vec2::ZERO;
@@ -250,10 +246,9 @@ pub fn player_movement(
             direction = direction.normalize();
         }
 
-        // transform.translation += direction * PLAYER_SPEED * time.delta_seconds();
         velocity.linvel = direction * PLAYER_SPEED;
 
-        if let Ok((mut animation_player, mut transform)) = animation_query.get_single_mut() {
+        if let Ok(mut animation_player) = animation_query.get_single_mut() {
             if direction.length() > 0.0 {
                 animation_player
                     .play_with_transition(
@@ -266,7 +261,6 @@ pub fn player_movement(
                         animations.idle_animation.clone_weak(),
                         Duration::from_millis(250)
                     ).repeat();
-                // transform.translation.y = 0.;
             }
         }
     }

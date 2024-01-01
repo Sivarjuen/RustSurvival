@@ -1,15 +1,19 @@
 mod animation;
 mod assets;
 mod fps;
+mod mob;
 mod physics;
 mod player;
+mod ui;
 
 mod prelude {
     pub use crate::animation::*;
     pub use crate::assets::*;
     pub use crate::fps::*;
+    pub use crate::mob::*;
     pub use crate::physics::*;
     pub use crate::player::*;
+    pub use crate::ui::*;
     pub use bevy::prelude::*;
 }
 
@@ -33,11 +37,14 @@ fn main() {
         .add_plugins((
             EditorPlugin::default(),
             // WorldInspectorPlugin::new()
+            CustomUiPlugin,
             FpsPlugin,
             PhysicsPlugin,
             SpriteAnimationPlugin,
             AssetsPlugin,
             PlayerPlugin,
+            MobPlugin,
+            
         ))
         .add_systems(Startup, setup)
         .add_systems(Update, bevy::window::close_on_esc)
