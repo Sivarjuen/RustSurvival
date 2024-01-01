@@ -10,6 +10,9 @@ const PLAYER_SIZE: f32 = 64.0;
 #[derive(Component)]
 pub struct Player;
 
+#[derive(Component)]
+pub struct PlayerEyes;
+
 #[derive(Resource)]
 pub struct PlayerAnimations {
     pub idle_animation: Handle<AnimationClip>,
@@ -22,7 +25,10 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, spawn_player)
-            .add_systems(Update, player_movement);
+            .add_systems(Update, (
+                player_movement,
+                target_nearest_mob,
+                lookat_nearest_target));
     }
 }
 
@@ -163,7 +169,7 @@ pub fn spawn_player(
         ))
         .id();
     let eye_anchor = commands
-        .spawn((SpatialBundle::default(), eye_anchor_name))
+        .spawn((SpatialBundle::default(), PlayerEyes, eye_anchor_name))
         .id();
     let body_sprite = commands
         .spawn((
@@ -261,6 +267,32 @@ pub fn player_movement(
                         animations.idle_animation.clone_weak(),
                         Duration::from_millis(250)
                     ).repeat();
+            }
+        }
+    }
+}
+
+pub fn lookat_nearest_target(
+    mut gizmos: Gizmos,
+    target: Query<&Transform, (With<NearestMob>, Without<Player>, Without<PlayerEyes>)>,
+    player: Query<&Transform, With<Player>>,
+    mut player_eyes: Query<&mut Transform, (With<PlayerEyes>, Without<Player>)>
+) {
+    if let Ok(player_transform) = player.get_single() {
+        if let Ok(mut eyes) = player_eyes.get_single_mut() {
+            if let Ok(target_transform) = target.get_single() {
+                let mut direction = Vec2::new(
+                    target_transform.translation.x - player_transform.translation.x,
+                    target_transform.translation.y - player_transform.translation.y
+                );
+
+                if direction.length() > 0.0 {
+                    direction = direction.normalize();
+                }
+
+                // TODO: Move eyes to look at target
+
+                gizmos.line_2d(player_transform.translation.xy(), target_transform.translation.xy(), Color::RED);
             }
         }
     }

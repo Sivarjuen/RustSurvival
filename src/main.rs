@@ -47,10 +47,23 @@ fn main() {
             
         ))
         .add_systems(Startup, setup)
+        .add_systems(Update, follow_player)
         .add_systems(Update, bevy::window::close_on_esc)
         .run();
 }
 
 fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
+}
+
+fn follow_player(
+    mut camera_query: Query<&mut Transform, (With<Camera>, Without<Player>)>,
+    player_query: Query<&Transform, With<Player>>
+) {
+    if let Ok(player) = player_query.get_single() {
+        for mut transform in camera_query.iter_mut() {
+            transform.translation.x = player.translation.x;
+            transform.translation.y = player.translation.y;
+        }
+    }
 }
