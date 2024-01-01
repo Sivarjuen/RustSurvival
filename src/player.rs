@@ -161,7 +161,7 @@ pub fn spawn_player(
         .spawn((SpatialBundle::default(), anchor_name, animation_player))
         .id();
     let eye_anchor = commands
-        .spawn((SpatialBundle::default(), PlayerEyes, eye_anchor_name))
+        .spawn((SpatialBundle::default(), eye_anchor_name))
         .id();
     let body_sprite = commands
         .spawn((
@@ -190,6 +190,7 @@ pub fn spawn_player(
                 transform: Transform::from_translation(Vec3::new(0., 0., 1.)),
                 ..default()
             },
+            PlayerEyes,
             eye_sprite_name,
             AnimationTimer(Timer::from_seconds(2.5, TimerMode::Once)),
             Animations {
@@ -284,13 +285,17 @@ pub fn lookat_nearest_target(
                     direction = direction.normalize();
                 }
 
-                // TODO: Move eyes to look at target
+                eyes.translation.x = direction.x * 8.;
+                eyes.translation.y = direction.y * 8.;
 
                 gizmos.line_2d(
                     player_transform.translation.xy(),
                     target_transform.translation.xy(),
                     Color::RED,
                 );
+            } else {
+                eyes.translation.x = 0.;
+                eyes.translation.y = 0.;
             }
         }
     }
