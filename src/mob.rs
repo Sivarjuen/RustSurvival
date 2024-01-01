@@ -9,6 +9,7 @@ const MOB_SPEED: f32 = 150.0;
 const MOB_SIZE: f32 = 64.0;
 const SPAWN_RADIUS: f32 = 1000.0;
 const MAX_TARGET_DISTANCE: f32 = 500.0;
+const RESET_DISTANCE: f32 = 2000.0;
 
 #[derive(Component)]
 pub struct Mob;
@@ -62,7 +63,7 @@ pub fn spawn_mobs(
                 0.0,
             );
 
-            let root = commands
+            let _root = commands
                 .spawn((
                     SpatialBundle::from_transform(Transform::from_translation(pos)),
                     Name::new("Mob"),
@@ -81,17 +82,27 @@ pub fn spawn_mobs(
 
 pub fn mob_movement(
     player_query: Query<&Transform, With<Player>>,
-    mut mob_query: Query<(&mut Velocity, &Transform), With<Mob>>,
+    mut mob_query: Query<(&mut Velocity, &mut Transform), (With<Mob>, Without<Player>)>,
 ) {
-    if let Ok(player_transform) = player_query.get_single() {
-        for (mut velocity, transform) in &mut mob_query {
+    if let Ok(player) = player_query.get_single() {
+        for (mut velocity, mut transform) in &mut mob_query {
             let mut direction = Vec2::new(
-                player_transform.translation.x - transform.translation.x,
-                player_transform.translation.y - transform.translation.y,
+                player.translation.x - transform.translation.x,
+                player.translation.y - transform.translation.y,
             );
 
-            if direction.length() > 0.0 {
+            let distance_sq = direction.length_squared();
+            if distance_sq > 0.0 {
                 direction = direction.normalize();
+            }
+
+            if distance_sq > RESET_DISTANCE.powf(2.0) {
+                let angle: f32 = rand::thread_rng().gen_range(0.0..360.0);
+                transform.translation = Vec3::new(
+                    (angle.cos() * SPAWN_RADIUS) + player.translation.x,
+                    (angle.sin() * SPAWN_RADIUS) + player.translation.y,
+                    0.0,
+                );
             }
 
             velocity.linvel = direction * MOB_SPEED;
@@ -104,7 +115,7 @@ pub fn target_nearest_mob(
     time: Res<Time>,
     mut timer: ResMut<MobTimer>,
     player_query: Query<&Transform, With<Player>>,
-    mut mob_query: Query<(Entity, &Transform), With<Mob>>,
+    mob_query: Query<(Entity, &Transform), With<Mob>>,
 ) {
     timer.0.tick(time.delta());
     if timer.0.just_finished() {
@@ -123,7 +134,7 @@ pub fn target_nearest_mob(
                 }
             }
 
-            if closest_distance <= f32::powf(MAX_TARGET_DISTANCE, 2.) {
+            if closest_distance <= MAX_TARGET_DISTANCE.powf(2.) {
                 if let Some(closest) = closest_entity {
                     commands.entity(closest).insert(NearestMob);
                 }

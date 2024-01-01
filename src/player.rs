@@ -241,14 +241,14 @@ pub fn player_movement(
             direction += Vec2::new(0.0, -1.0);
         }
 
-        if direction.length() > 0.0 {
+        if direction.length_squared() > 0.0 {
             direction = direction.normalize();
         }
 
         velocity.linvel = direction * PLAYER_SPEED;
 
         if let Ok(mut animation_player) = animation_query.get_single_mut() {
-            if direction.length() > 0.0 {
+            if direction.length_squared() > 0.0 {
                 animation_player
                     .play_with_transition(
                         animations.walk_animation.clone_weak(),
@@ -281,7 +281,7 @@ pub fn lookat_nearest_target(
                     target_transform.translation.y - player_transform.translation.y,
                 );
 
-                if direction.length() > 0.0 {
+                if direction.length_squared() > 0.0 {
                     direction = direction.normalize();
                 }
 
